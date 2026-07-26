@@ -1,17 +1,17 @@
-================================================================================
-Prompt pro AI: Tvorba produktového zadání (PRD) před Vibe Codingem
-================================================================================
+=================================================
+Prompt pro AI: Tvorba produktového zadání (PRD)
+=================================================
 
-Instrukce pro učitele:
-Vlož tento kompletní text do velkého AI modelu (doporučujeme Claude 4.5 Haiku, Google AI Studio nebo přímo v rozhraní Claude). Tento prompt zajistí, že s tebou AI projde Sokratovskou metodu dotazování a pomůže ti aplikaci skvěle promyslet dřív, než napíšeš první řádek kódu.
+Instrukce:
+Vlož tento kompletní text do velkého AI modelu (doporučujeme model Claude 4.7 Haiku). Tento prompt zajistí, že tě model provede Sokratovskou metodou, zohlední silné stránky, samoopravné mechanismy a vytvoří špičkové zadání pro dlouhodobě udržitelnou aplikaci.
 
---------------------------------================--------------------------------
+--------------------------------------------------------------------------------
 ZDE ZAČÍNÁ TEXT PRO ZKOPÍROVÁNÍ DO AI:
---------------------------------================================================
+--------------------------------------------------------------------------------
 
-Chci s tebou metodou vibe codingu postavit aplikaci určenou pro oblast vzdělávání (pro učitele, studenty nebo organizace H-mat a H-edu). Než začneš generovat jakýkoliv kód, projdeme si produktové požadavky, abychom vytvořili neprůstřelné produktové zadání (PRD) a neskončili s nefunkčním digitálním odpadem. 
+Chci s tebou metodou vibe codingu postavit aplikaci. Budeme striktně postupovat podle 3-vrstvé architektury A.N.T. (Layer 1: Architecture/Direktivy v Markdownu, Layer 2: Inteligentní navigace a směrování, Layer 3: Deterministické nástroje a skripty).
 
-Tvým úkolem je pokládat mi upřesňující otázky striktně JEDNU PO DRUHÉ. Vždy počkej na mou odpověď, než položíš další otázku.
+Než začneš generovat jakýkoliv kód, musíme si ujasnit produktové požadavky a vytvořit neprůstřelné produktové zadání (PRD). Tvým úkolem je pokládat mi upřesňující otázky striktně JEDNU PO DRUHÉ. Vždy počkej na mou odpověď, než položíš další otázku.
 
 Zde jsou body, které spolu musíme projít:
 
@@ -32,26 +32,32 @@ Zde jsou body, které spolu musíme projít:
 "Kde chceš aplikaci provozovat a jak ji budeme servisovat? Chceš moderní frontend (např. Next.js/Astro) připravený pro rychlé nasazení na server (Docker/Coolify, Cloudflare Pages), abychom ji mohli kdykoliv snadno aktualizovat, nasadit a udržovat?"
 
 ================================================================================
-2. NEPOVINNÁ ČÁST (Pokud budeme mít čas a kontext, projdeme i toto)
+2. POKROČILÁ A NEPOVINNÁ ČÁST (Propracování detailů systému)
 ================================================================================
 
-5. Vzhled a atmosféra (UI/UX Vibe)
+5. Tým Digitálních Agentů a Gallupovy silné stránky
+"Pokud by na této aplikaci na pozadí pracoval tým specializovaných agentů (např. Operátor s talenty Responsibility a Discipline, Kritik s talenty Analytical a Deliberative, nebo Idea Maker s talentem Ideation), jaké role a talenty budeme v tomto projektu potřebovat pro optimální výsledky?"
+
+6. Vzhled, atmosféra a vizuální styl (UI/UX Vibe)
 "Jak by měla aplikace působit vizuálně? Má to být super-čistý 'Clean & Tech' styl (jako Notion), drsný Dark Mode, nebo barevný a přístupný design pro lidi, co nemají rádi složité technologie?"
 
-6. Data, integrace a ekosystém (The Ecosystem)
-"Bude aplikace žít ve vakuu, nebo mluví s okolním světem? Potřebujeme trvalou databázi (např. Cloudflare D1/SQLite) a přihlašování (např. bezheslový Magic Link přes Resend), nebo stačí lokální chod v prohlížeči? Potřebujeme externí API (OpenAI, Anthropic, Stripe na platby, Bunny.net na video)?"
+7. Data, integrace a ekosystém (The Ecosystem)
+"Bude aplikace žít ve vakuu, nebo mluví s okolním světem? Potřebujeme trvalou databázi (např. Cloudflare D1/SQLite) a přihlašování (např. bezheslový Magic Link přes Resend), nebo stačí lokální chod v prohlížeči? Potřebujeme externí API (OpenAI, Anthropic, Stripe na platby)?"
 
-7. Bezpečnost a guardrails proti zneužití (Rate Limiting)
-"Jak zajistíme, aby nám uživatelé nevyplýtvali drahé tokeny nebo kredity? Potřebujeme hlídat limity (Rate Limiting) nebo omezit přístup jen na konkrétní e-mailové domény (např. povolit registraci pouze pro lidi z @h-mat.cz nebo @h-edu.cz)?"
+8. Bezpečnost a guardrails proti zneužití (Rate Limiting)
+"Jak zajistíme, aby nám uživatelé nevyplýtvali drahé tokeny nebo kredity? Potřebujeme hlídat limity (Rate Limiting) nebo omezit přístup jen na konkrétní e-mailové domény, abychom zabránili zneužití systému neautorizovanými uživateli?"
 
-8. Křížová validace (The 3 Perspectives Review)
-"Až mi odpovíš na předchozí body, podíváme se na aplikaci ze tří směrů: 
+9. Samoopravný mechanismus (Self-Annealing Loop)
+"Jak má systém reagovat, když se v kódu nebo datech objeví neočekávaná chyba? Zavedeme pravidlo, že systém musí analyzovat stack trace, opravit poškozený krok a automaticky zapsat ponaučení do projektové ústavy (gemini.md), aby se stejná chyba už nikdy neopakovala?"
+
+10. Křížová validace (The 3 Perspectives Review)
+"Až probereme předchozí body, podíváme se na aplikaci ze tří směrů: 
 - Jako VÝVOJÁŘ: Je to technicky čisté, bezpečné a implementovatelné?
 - Jako UŽIVATEL: Je ovládání intuitivní, nebo hrozí zásek?
 - Jako MANAŽER/PODNIKATEL: Je tento rozsah realistický na rychlé nasazení?"
 
 --------------------------------------------------------------------------------
 INSTRUKCE PRO MODEL:
-Jakmile budeme mít dostatek informací ze všech probraných bodů, explicitně mi to oznam a vygeneruj kompletní, detailní a strukturované PRD v Markdownu podle mé interní šablony (včetně popisu problému, use casů, MVP scope, funkčních požadavků, technických mantinelů, AI guardrails, datového schématu a release kritérií).
+Jakmile budeme mít dostatek informací ze všech probraných bodů, explicitně mi to oznam a vygeneruj kompletní, detailní a strukturované PRD v Markdownu podle mé interní šablony. V dokumentu jasně definuj: cíle produktu, proškrtaný MVP scope, funkční požadavky, technické mantinely, mapu agentů s jejich Gallupovými talenty, AI guardrails proti zneužití kreditů a pravidla pro samoopravnou smyčku (Self-Annealing).
 
 Nyní mi polož první otázku ze Základní povinné části.
