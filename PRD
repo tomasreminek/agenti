@@ -1,0 +1,57 @@
+================================================================================
+Prompt pro AI: Tvorba produktového zadání (PRD) před Vibe Codingem
+================================================================================
+
+Instrukce pro učitele:
+Vlož tento kompletní text do velkého AI modelu (doporučujeme Claude 4.5 Haiku, Google AI Studio nebo přímo v rozhraní Claude). Tento prompt zajistí, že s tebou AI projde Sokratovskou metodu dotazování a pomůže ti aplikaci skvěle promyslet dřív, než napíšeš první řádek kódu.
+
+--------------------------------================--------------------------------
+ZDE ZAČÍNÁ TEXT PRO ZKOPÍROVÁNÍ DO AI:
+--------------------------------================================================
+
+Chci s tebou metodou vibe codingu postavit aplikaci určenou pro oblast vzdělávání (pro učitele, studenty nebo organizace H-mat a H-edu). Než začneš generovat jakýkoliv kód, projdeme si produktové požadavky, abychom vytvořili neprůstřelné produktové zadání (PRD) a neskončili s nefunkčním digitálním odpadem. 
+
+Tvým úkolem je pokládat mi upřesňující otázky striktně JEDNU PO DRUHÉ. Vždy počkej na mou odpověď, než položíš další otázku.
+
+Zde jsou body, které spolu musíme projít:
+
+================================================================================
+1. ZÁKLADNÍ POVINNÁ ČÁST (Odpověz mi na tyto otázky jako první)
+================================================================================
+
+1. Jádro pudla (Core Value)
+"Představ si, že aplikace je hotová a funguje skvěle. Jakou jednu hlavní věc z pohledu uživatele dělá? Co je ten moment, kdy si uživatel řekne 'Wow, to mi ušetřilo práci'?"
+
+2. První minuta v aplikaci (User Flow)
+"Když uživatel aplikaci poprvé otevře, co přesně uvidí a jaký by měl být jeho první krok? (Např. prázdná stránka s velkým tlačítkem 'Importovat', přihlašovací formulář, nebo hned interaktivní tabulka?)"
+
+3. Definice úspěchu pro MVP (Minimal Viable Product)
+"Co je ta absolutně nejmenší a nejjednodušší verze, která ti bude stačit, abys ji mohl začít používat? Které funkce (např. složité žebříčky, diskuse, certifikáty) bez milosti škrtneme do verze 2, abychom nevyčerpali API limity hned na startu?"
+
+4. Architektura, deployment a dlouhodobá udržitelnost
+"Kde chceš aplikaci provozovat a jak ji budeme servisovat? Chceš moderní frontend (např. Next.js/Astro) připravený pro rychlé nasazení na server (Docker/Coolify, Cloudflare Pages), abychom ji mohli kdykoliv snadno aktualizovat, nasadit a udržovat?"
+
+================================================================================
+2. NEPOVINNÁ ČÁST (Pokud budeme mít čas a kontext, projdeme i toto)
+================================================================================
+
+5. Vzhled a atmosféra (UI/UX Vibe)
+"Jak by měla aplikace působit vizuálně? Má to být super-čistý 'Clean & Tech' styl (jako Notion), drsný Dark Mode, nebo barevný a přístupný design pro lidi, co nemají rádi složité technologie?"
+
+6. Data, integrace a ekosystém (The Ecosystem)
+"Bude aplikace žít ve vakuu, nebo mluví s okolním světem? Potřebujeme trvalou databázi (např. Cloudflare D1/SQLite) a přihlašování (např. bezheslový Magic Link přes Resend), nebo stačí lokální chod v prohlížeči? Potřebujeme externí API (OpenAI, Anthropic, Stripe na platby, Bunny.net na video)?"
+
+7. Bezpečnost a guardrails proti zneužití (Rate Limiting)
+"Jak zajistíme, aby nám uživatelé nevyplýtvali drahé tokeny nebo kredity? Potřebujeme hlídat limity (Rate Limiting) nebo omezit přístup jen na konkrétní e-mailové domény (např. povolit registraci pouze pro lidi z @h-mat.cz nebo @h-edu.cz)?"
+
+8. Křížová validace (The 3 Perspectives Review)
+"Až mi odpovíš na předchozí body, podíváme se na aplikaci ze tří směrů: 
+- Jako VÝVOJÁŘ: Je to technicky čisté, bezpečné a implementovatelné?
+- Jako UŽIVATEL: Je ovládání intuitivní, nebo hrozí zásek?
+- Jako MANAŽER/PODNIKATEL: Je tento rozsah realistický na rychlé nasazení?"
+
+--------------------------------------------------------------------------------
+INSTRUKCE PRO MODEL:
+Jakmile budeme mít dostatek informací ze všech probraných bodů, explicitně mi to oznam a vygeneruj kompletní, detailní a strukturované PRD v Markdownu podle mé interní šablony (včetně popisu problému, use casů, MVP scope, funkčních požadavků, technických mantinelů, AI guardrails, datového schématu a release kritérií).
+
+Nyní mi polož první otázku ze Základní povinné části.
