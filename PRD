@@ -1,63 +1,95 @@
-=================================================
-Prompt pro AI: Tvorba produktového zadání (PRD)
-=================================================
-
-Instrukce:
-Vlož tento kompletní text do velkého AI modelu (doporučujeme model Claude 4.7 Haiku). Tento prompt zajistí, že tě model provede Sokratovskou metodou, zohlední silné stránky, samoopravné mechanismy a vytvoří špičkové zadání pro dlouhodobě udržitelnou aplikaci.
-
---------------------------------------------------------------------------------
-ZDE ZAČÍNÁ TEXT PRO ZKOPÍROVÁNÍ DO AI:
---------------------------------------------------------------------------------
-
-Chci s tebou metodou vibe codingu postavit aplikaci. Budeme striktně postupovat podle 3-vrstvé architektury A.N.T. (Layer 1: Architecture/Direktivy v Markdownu, Layer 2: Inteligentní navigace a směrování, Layer 3: Deterministické nástroje a skripty).
-
-Než začneš generovat jakýkoliv kód, musíme si ujasnit produktové požadavky a vytvořit neprůstřelné produktové zadání (PRD). Tvým úkolem je pokládat mi upřesňující otázky striktně JEDNU PO DRUHÉ. Vždy počkej na mou odpověď, než položíš další otázku.
-
-Zde jsou body, které spolu musíme projít:
-
 ================================================================================
-1. ZÁKLADNÍ POVINNÁ ČÁST (Odpověz mi na tyto otázky jako první)
+ČÁST 1: MASTER PROMPT PRO AI – INTERAKTIVNÍ TVORBA PRD (Zkopíruj do Claude 4.7 Haiku)
 ================================================================================
+
+Chci s tebou metodou vibe codingu připravit podklady pro tvorbu nové aplikace. Tvým úkolem je pokládat mi upřesňující otázky striktně JEDNU PO DRUHÉ. Vždy počkej na mou odpověď, než položíš další otázku.
+
+DŮLEŽITÉ PRAVIDLO: Pokud u jakékoliv otázky odpovím "Nevím", "Navrhni" nebo odpovím neúplně, okamžitě mi navrhni 3 konkrétní, logické a technicky snadno realizovatelné varianty, ze kterých si mohu vybrat.
+
+Projdeme spolu tyto body:
 
 1. Jádro pudla (Core Value)
-"Představ si, že aplikace je hotová a funguje skvěle. Jakou jednu hlavní věc z pohledu uživatele dělá? Co je ten moment, kdy si uživatel řekne 'Wow, to mi ušetřilo práci'?"
+"Co je ta jedna hlavní věc, kterou aplikace dělá? Jaký je ten 'Aha moment', kdy uživatel uvidí ušetřenou práci?"
 
 2. První minuta v aplikaci (User Flow)
-"Když uživatel aplikaci poprvé otevře, co přesně uvidí a jaký by měl být jeho první krok? (Např. prázdná stránka s velkým tlačítkem 'Importovat', přihlašovací formulář, nebo hned interaktivní tabulka?)"
+"Když uživatel aplikaci poprvé otevře, co přesně uvidí na obrazovce a jaký je jeho první krok?"
 
-3. Definice úspěchu pro MVP (Minimal Viable Product)
-"Co je ta absolutně nejmenší a nejjednodušší verze, která ti bude stačit, abys ji mohl začít používat? Které funkce (např. složité žebříčky, diskuse, certifikáty) bez milosti škrtneme do verze 2, abychom nevyčerpali API limity hned na startu?"
+3. MVP Scope (Ořezání na dřeň)
+"Co je ta nejjednodušší možná verze, která ti bude stačit pro první spuštění? Které funkce záměrně odložíme na později, abychom se nezasekli a nevyčerpali API limity?"
 
-4. Architektura, deployment a dlouhodobá udržitelnost
-"Kde chceš aplikaci provozovat a jak ji budeme servisovat? Chceš moderní frontend (např. Next.js/Astro) připravený pro rychlé nasazení na server (Docker/Coolify, Cloudflare Pages), abychom ji mohli kdykoliv snadno aktualizovat, nasadit a udržovat?"
+4. UI/UX Vibe (Vzhled)
+"Jak má aplikace působit? Super-čistý 'Notion' styl, tmavý režim (Dark Mode), nebo jednoduchý a barevný design?"
 
-================================================================================
-2. POKROČILÁ A NEPOVINNÁ ČÁST (Propracování detailů systému)
-================================================================================
+5. Data a Integrace (Ecosystem)
+"Potřebujeme trvalou databázi (např. ukládání uživatelů/dat), nebo stačí, když aplikace bude fungovat lokálně v prohlížeči? Potřebujeme externí API (např. OpenAI pro generování textů, Stripe pro platby)?"
 
-5. Tým Digitálních Agentů a Gallupovy silné stránky
-"Pokud by na této aplikaci na pozadí pracoval tým specializovaných agentů (např. Operátor s talenty Responsibility a Discipline, Kritik s talenty Analytical a Deliberative, nebo Idea Maker s talentem Ideation), jaké role a talenty budeme v tomto projektu potřebovat pro optimální výsledky?"
+6. Deployment (Kde to poběží)
+"Kde chceš aplikaci provozovat? (Např. statický web na Cloudflare Pages/Vercel, nebo plná aplikace připravená pro Docker/Coolify server?)"
 
-6. Vzhled, atmosféra a vizuální styl (UI/UX Vibe)
-"Jak by měla aplikace působit vizuálně? Má to být super-čistý 'Clean & Tech' styl (jako Notion), drsný Dark Mode, nebo barevný a přístupný design pro lidi, co nemají rádi složité technologie?"
-
-7. Data, integrace a ekosystém (The Ecosystem)
-"Bude aplikace žít ve vakuu, nebo mluví s okolním světem? Potřebujeme trvalou databázi (např. Cloudflare D1/SQLite) a přihlašování (např. bezheslový Magic Link přes Resend), nebo stačí lokální chod v prohlížeči? Potřebujeme externí API (OpenAI, Anthropic, Stripe na platby)?"
-
-8. Bezpečnost a guardrails proti zneužití (Rate Limiting)
-"Jak zajistíme, aby nám uživatelé nevyplýtvali drahé tokeny nebo kredity? Potřebujeme hlídat limity (Rate Limiting) nebo omezit přístup jen na konkrétní e-mailové domény, abychom zabránili zneužití systému neautorizovanými uživateli?"
-
-9. Samoopravný mechanismus (Self-Annealing Loop)
-"Jak má systém reagovat, když se v kódu nebo datech objeví neočekávaná chyba? Zavedeme pravidlo, že systém musí analyzovat stack trace, opravit poškozený krok a automaticky zapsat ponaučení do projektové ústavy (gemini.md), aby se stejná chyba už nikdy neopakovala?"
-
-10. Křížová validace (The 3 Perspectives Review)
-"Až probereme předchozí body, podíváme se na aplikaci ze tří směrů: 
-- Jako VÝVOJÁŘ: Je to technicky čisté, bezpečné a implementovatelné?
-- Jako UŽIVATEL: Je ovládání intuitivní, nebo hrozí zásek?
-- Jako MANAŽER/PODNIKATEL: Je tento rozsah realistický na rychlé nasazení?"
+7. Samoopravná logika (Self-Annealing)
+"Chceš do projektu zahrnout pravidlo, že při jakékoliv chybě musí AI nejprve analyzovat chybu, opravit ji a zapsat ponaučení do ústavy projektu, aby se neopakovala?"
 
 --------------------------------------------------------------------------------
 INSTRUKCE PRO MODEL:
-Jakmile budeme mít dostatek informací ze všech probraných bodů, explicitně mi to oznam a vygeneruj kompletní, detailní a strukturované PRD v Markdownu podle mé interní šablony. V dokumentu jasně definuj: cíle produktu, proškrtaný MVP scope, funkční požadavky, technické mantinely, mapu agentů s jejich Gallupovými talenty, AI guardrails proti zneužití kreditů a pravidla pro samoopravnou smyčku (Self-Annealing).
+Jakmile zodpovíme všechny body, vygeneruj mi kompletní, detailní PRD v Markdownu. Toto PRD bude obsahovat: Cíl, User Flow, MVP Scope (Must-have / Won't-have), Funkční požadavky, Datový model, UX styl a pravidla pro řešení chyb.
 
-Nyní mi polož první otázku ze Základní povinné části.
+Nyní mi polož první otázku.
+
+
+Až budeš mít všechno, tak pokračuj k části 2:
+
+================================================================================
+ČÁST 2: JAK Z PRD UDĚLAT KVALITNÍ ZADÁNÍ PRO CLAUDE CODE
+================================================================================
+
+Jakmile ti Claude 4.7 Haiku vygeneruje hotové PRD, tvým cílem je přejít z textu do prohlížeče (oživit aplikaci). Claude Code je terminálový nástroj, který potřebuje jasný "zdroj pravdy". Tím bude soubor CLAUDE.md.
+
+KROK 1: Založení Plánovacího módu (Soubor CLAUDE.md)
+V kořenovém adresáři svého projektu vytvoř soubor s názvem `CLAUDE.md`. Tento soubor slouží jako ústava projektu. Vlož do něj text v tomto formátu:
+
+# Constitution & Tech Stack: [Název Tvojí Appky]
+
+## 🛠️ Tech Stack
+- Frontend: Vanilla JS / HTML5 / Tailwind CSS (pro maximální rychlost bez overengineeringu)
+- Backend/Hosting: Cloudflare Pages / Vercel (nebo Node.js pro Coolify)
+- Databáze: SQLite / Cloudflare D1 (pokud je vyžadována v PRD)
+
+## 🎯 Produktové zadání (Zkrácené PRD)
+[ZDE VLOŽ MVP SCOPE A POŽADAVKY Z VYGENEROVANÉHO PRD]
+
+## 📜 Pravidla vývoje (Vývojářské guardrails)
+- Vždy piš modulární, čistý a komentovaný kód.
+- Před vytvořením nového souboru zkontroluj stávající strukturu, abychom neměli duplicity.
+- Žádný kód nesmí běžet v nekonečné smyčce bez bezpečnostního timeoutu (ochrana API kreditů).
+
+## 🔄 Samoopravná smyčka (Self-Annealing Loop)
+Pokud při spuštění aplikace nebo testu dojde k chybě, Claude Code musí:
+1. Přečíst chybovou hlášku a stack trace.
+2. Najít přesné místo selhání v kódu a opravit ho.
+3. Otestovat opravu.
+4. Pokud šlo o strukturální problém, zapsat ponaučení sem do sekce "Ponaučení z chyb" na konec tohoto souboru.
+
+---
+
+KROK 2: Spuštění Claude Code a zadání prvního úkolu
+Otevři terminál ve složce projektu, spusť `claude` (nebo tool, který používáš) a zadej mu tento úvodní prompt:
+
+"Přečti si soubor CLAUDE.md. Podle v něm definovaného PRD a technologického stacku vytvoř základní strukturu souborů pro naši aplikaci a naprogramuj první funkční MVP verzi tak, abychom ji mohli rovnou otevřít v prohlížeči. Postupuj krok za krokem."
+
+---
+
+KROK 3: Oživování aplikace a řešení chyb (Vibe Coding v praxi)
+Když Claude Code dopíše kód, otevři aplikaci v prohlížeči (např. přes lokální server nebo double-click na index.html). 
+Pokud něco nefunguje, nebo vyskočí chyba v konzoli prohlížeče (F12):
+1. Zkopíruj celou chybovou hlášku z konzole.
+2. Vlož ji do Claude Code s textem: "V prohlížeči se objevila tato chyba. Aktivuj Self-Annealing Loop podle CLAUDE.md, najdi chybu v kódu a oprav ji."
+3. AI kód zreviduje, opraví a ty jen refreshneš prohlížeč.
+
+---
+
+KROK 4: Nasazení aplikace a propojení databáze (Zprovoznění na serveru)
+Jakmile aplikace lokálně funguje, řekni Claude Code, aby připravil aplikaci na ostrý deploy:
+1. Statický web (Frontend): "Připrav aplikaci pro nasazení na Cloudflare Pages / Vercel. Vygeneruj potřebné konfigurační soubory."
+2. Plná aplikace + Databáze (Hostinger Coolify): "Vytvoř soubor `Dockerfile` a `docker-compose.yml` pro náš tech-stack. Nastav připojení k databázi tak, aby se přihlašovací údaje (DATABASE_URL, API klíče) tahaly bezpečně ze souboru `.env`, který na serveru propojíme."
+
+Následně stačí kód pushnout na GitHub a v Coolify nebo Cloudflare kliknout na "Deploy". Aplikace je živá, spojená s databází a plně funkční.
