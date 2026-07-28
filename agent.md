@@ -1,4 +1,4 @@
-# Agent Instructions & Project Constitution (claude.md)
+# Agent Instructions & Project Constitution (claude.md, agent.md)
 
 > Tento soubor slouží jako zdroj pravdy pro jakékoliv AI prostředí (Claude Code, Cursor, Gemini). Každý agent je povinen se jím řídit při každém kroku.
 
