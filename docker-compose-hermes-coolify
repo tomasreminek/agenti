@@ -12,7 +12,7 @@ services:
 
         if [ -d /opt/hermes ]; then
           chmod -R a+rX /opt/hermes 2>/dev/null || true
-          echo "[bootstrap] prava v /opt/hermes normalizovana (a+rX) pro hermes-webui"
+          echo "[bootstrap] prava v /opt/hermes normalizovana (a+rX)"
         fi
 
         cat > /tmp/hermes_dashboard_auth.py <<'PY'
@@ -142,7 +142,7 @@ services:
       retries: 5
       start_period: 60s
 
-  hermes-web-proxy:
+  hermes-web:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
@@ -190,38 +190,54 @@ services:
     depends_on:
       - hermes-agent
 
-  hermes-webui:
-    image: ghcr.io/nesquena/hermes-webui:0.51.92
-    restart: unless-stopped
-    depends_on:
-      hermes-agent:
-        condition: service_healthy
-    expose:
-      - "8787"
-    environment:
-      - SERVICE_URL_HERMESWEBUI_8787
-      - HERMES_WEBUI_HOST=0.0.0.0
-      - HERMES_WEBUI_PORT=8787
-      - HERMES_WEBUI_STATE_DIR=/home/hermeswebui/.hermes/webui
-      - HERMES_WEBUI_DEFAULT_WORKSPACE=/workspace
-      - WANTED_UID=${PUID:-1000}
-      - WANTED_GID=${PGID:-1000}
-      - HERMES_WEBUI_PASSWORD=${SERVICE_PASSWORD_ADMIN}
-      - TZ=${TZ:-Europe/Prague}
-    volumes:
-      - hermes-home:/home/hermeswebui/.hermes
-      - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
-      - hermes-workspace:/workspace
-    healthcheck:
-      test:
-        - CMD
-        - curl
-        - -f
-        - http://127.0.0.1:8787/health
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 120s
+  # ─────────────────────────────────────────────────────────────
+  # VYPNUTO 2026-07-30 — hermes-webui padal v restart smycce:
+  #   rsync: send_files failed to open ".../chrome-headless-shell-linux64/deb.deps":
+  #          Permission denied (13)
+  #   rsync error: some files/attrs were not transferred (code 23)
+  #   !! ERROR: Failed to stage hermes-agent source to writable build dir
+  #
+  # Init skript WebUI bezi jako uid 1000 a musi si rsyncnout /opt/hermes
+  # ze sdileneho volume hermes-agent-src. Cast souboru v .playwright/ vlastni
+  # root bez cteciho prava pro ostatni -> rsync konci kodem 23 -> skript exituje.
+  # Chmod v bootstrapu agenta problem neresi, protoze se Playwright rozbaluje
+  # jako root az po nem. Pred znovuzapnutim je potreba srovnat prava az PO
+  # dokonceni cont-init agenta (napr. samostatny one-shot sidecar kontejner).
+  #
+  # Pro zapnuti: odkomentovat blok nize + v Coolify znovu priradit domenu.
+  # ─────────────────────────────────────────────────────────────
+  # hermes-webui:
+  #   image: ghcr.io/nesquena/hermes-webui:0.51.92
+  #   restart: unless-stopped
+  #   depends_on:
+  #     hermes-agent:
+  #       condition: service_healthy
+  #   expose:
+  #     - "8787"
+  #   environment:
+  #     - SERVICE_URL_HERMESWEBUI_8787
+  #     - HERMES_WEBUI_HOST=0.0.0.0
+  #     - HERMES_WEBUI_PORT=8787
+  #     - HERMES_WEBUI_STATE_DIR=/home/hermeswebui/.hermes/webui
+  #     - HERMES_WEBUI_DEFAULT_WORKSPACE=/workspace
+  #     - WANTED_UID=${PUID:-1000}
+  #     - WANTED_GID=${PGID:-1000}
+  #     - HERMES_WEBUI_PASSWORD=${SERVICE_PASSWORD_ADMIN}
+  #     - TZ=${TZ:-Europe/Prague}
+  #   volumes:
+  #     - hermes-home:/home/hermeswebui/.hermes
+  #     - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
+  #     - hermes-workspace:/workspace
+  #   healthcheck:
+  #     test:
+  #       - CMD
+  #       - curl
+  #       - -f
+  #       - http://127.0.0.1:8787/health
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 120s
 
 volumes:
   hermes-home:
