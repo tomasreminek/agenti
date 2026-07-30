@@ -5,14 +5,97 @@ services:
       - sh
       - -lc
       - |
-        /opt/hermes/.venv/bin/hermes gateway run &
+        set -u
+
+        HERMES_PY=/opt/hermes/.venv/bin/python
+        HERMES_BIN=/opt/hermes/.venv/bin/hermes
+
+        cat > /tmp/hermes_dashboard_auth.py <<'PY'
+        import datetime
+        import os
+        import shutil
+        import sys
+
+        sys.path.insert(0, "/opt/hermes")
+
+        try:
+            import yaml
+        except ImportError:
+            print("[bootstrap] pyyaml neni k dispozici", file=sys.stderr)
+            raise SystemExit(1)
+
+        try:
+            from plugins.dashboard_auth.basic import hash_password
+        except Exception as exc:
+            print("[bootstrap] nelze importovat hash_password: %r" % (exc,), file=sys.stderr)
+            raise SystemExit(1)
+
+        home = os.environ.get("HERMES_HOME", "/home/hermes/.hermes")
+        path = os.path.join(home, "config.yaml")
+        user = os.environ.get("HERMES_DASHBOARD_USER") or "admin"
+        password = os.environ.get("HERMES_DASHBOARD_PASSWORD") or ""
+
+        if not password:
+            print("[bootstrap] HERMES_DASHBOARD_PASSWORD je prazdne", file=sys.stderr)
+            raise SystemExit(1)
+
+        os.makedirs(home, exist_ok=True)
+
+        cfg = {}
+        stat = None
+        if os.path.exists(path):
+            stat = os.stat(path)
+            with open(path, "r", encoding="utf-8") as fh:
+                cfg = yaml.safe_load(fh) or {}
+            if not os.path.exists(path + ".orig.bak"):
+                shutil.copy2(path, path + ".orig.bak")
+                print("[bootstrap] zaloha ulozena: config.yaml.orig.bak")
+
+        dashboard = cfg.setdefault("dashboard", {})
+        basic = dashboard.setdefault("basic_auth", {})
+        basic["username"] = user
+        basic["password_hash"] = hash_password(password)
+
+        if os.environ.get("HERMES_FORCE_CONFIG_VERSION") == "1":
+            cfg["_config_version"] = 12
+            print("[bootstrap] _config_version nastavena na 12")
+
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            yaml.safe_dump(cfg, fh, sort_keys=False, allow_unicode=True)
+        os.replace(tmp, path)
+
+        if stat is not None:
+            os.chown(path, stat.st_uid, stat.st_gid)
+            os.chmod(path, stat.st_mode & 0o777)
+        else:
+            os.chown(path, int(os.environ.get("HERMES_UID", "1000")),
+                           int(os.environ.get("HERMES_GID", "1000")))
+            os.chmod(path, 0o600)
+
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print("[bootstrap] %s dashboard.basic_auth nastaveno pro uzivatele '%s'" % (stamp, user))
+        PY
+
+        DASH_HOST=0.0.0.0
+        if ! PYTHONPATH=/opt/hermes "$$HERMES_PY" /tmp/hermes_dashboard_auth.py; then
+          echo "[bootstrap] SELHALO nastaveni auth -> dashboard bezi jen na 127.0.0.1"
+          echo "[bootstrap] gateway pobezi dal, dashboard nebude dostupny pres proxy"
+          DASH_HOST=127.0.0.1
+        fi
+
+        "$$HERMES_BIN" gateway run &
         gateway_pid="$$!"
-        /opt/hermes/.venv/bin/hermes dashboard --host 0.0.0.0 --port 9119 --no-open --insecure &
+        "$$HERMES_BIN" dashboard --host "$$DASH_HOST" --port 9119 --no-open &
         dashboard_pid="$$!"
+
         trap 'kill "$${gateway_pid}" "$${dashboard_pid}" 2>/dev/null; wait' TERM INT
+
         while kill -0 "$${gateway_pid}" 2>/dev/null && kill -0 "$${dashboard_pid}" 2>/dev/null; do
           sleep 5
         done
+
+        echo "[hermes] jedna ze sluzeb skoncila -> restart kontejneru"
         kill "$${gateway_pid}" "$${dashboard_pid}" 2>/dev/null
         wait
         exit 1
@@ -24,6 +107,10 @@ services:
       - HERMES_HOME=/home/hermes/.hermes
       - HERMES_UID=${PUID:-1000}
       - HERMES_GID=${PGID:-1000}
+      - HERMES_GATEWAY_NO_SUPERVISE=1
+      - HERMES_DASHBOARD_USER=${HERMES_DASHBOARD_USER:-admin}
+      - HERMES_DASHBOARD_PASSWORD=${HERMES_DASHBOARD_PASSWORD:-${SERVICE_PASSWORD_ADMIN}}
+      - HERMES_FORCE_CONFIG_VERSION=${HERMES_FORCE_CONFIG_VERSION:-0}
       - API_SERVER_ENABLED=true
       - API_SERVER_HOST=0.0.0.0
       - API_SERVER_PORT=8642
@@ -44,10 +131,11 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - test -d /home/hermes/.hermes && curl -fsS http://127.0.0.1:9119/ >/dev/null || exit 1
-      interval: 10s
+        - test -d /home/hermes/.hermes && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9119/ | grep -qE '^(200|301|302|401)$$'
+      interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 60s
 
   hermes-web-proxy:
     image: caddy:2-alpine
@@ -58,17 +146,12 @@ services:
       - "9119"
     environment:
       - SERVICE_URL_HERMESWEB_9119
-      - SERVICE_PASSWORD_ADMIN=${SERVICE_PASSWORD_ADMIN}
     command:
       - sh
       - -lc
       - |
-        HASH="$$(caddy hash-password --plaintext "$${SERVICE_PASSWORD_ADMIN}")"
-        cat > /etc/caddy/Caddyfile <<EOF
+        cat > /etc/caddy/Caddyfile <<'EOF'
         :9119 {
-          basic_auth {
-            admin $${HASH}
-          }
           reverse_proxy hermes-agent:9119
         }
         EOF
