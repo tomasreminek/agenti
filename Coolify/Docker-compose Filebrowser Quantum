@@ -1,0 +1,137 @@
+services:
+
+  # ─────────────────────────────────────────────────────────────
+  # INIT
+  # Připraví persistentní volume a konfiguraci FileBrowser Quantum
+  # ─────────────────────────────────────────────────────────────
+  init:
+    image: alpine:3.22
+    restart: "no"
+
+    command:
+      - sh
+      - -lc
+      - |
+        set -eu
+
+        echo "[init] Pripravuji workspace..."
+        mkdir -p /workspace/workspace
+        mkdir -p /workspace/.npm-global
+
+        echo "[init] Pripravuji FileBrowser Quantum..."
+        mkdir -p /quantum/tmp
+
+        cat > /quantum/config.yaml <<'EOF'
+        server:
+          port: 80
+          database: /home/filebrowser/data/database.db
+          cacheDir: /home/filebrowser/data/tmp
+
+          sources:
+            - path: /workspace
+              name: Workspace
+              config:
+                defaultEnabled: true
+
+        auth:
+          adminUsername: admin
+          methods:
+            password:
+              enabled: true
+              minLength: 5
+              signup: false
+        EOF
+
+        chown -R 1000:1000 /workspace
+        chown -R 1000:1000 /quantum
+
+        echo "[init] Hotovo."
+
+    volumes:
+      - workspace-home:/workspace
+      - quantum-data:/quantum
+
+
+  # ─────────────────────────────────────────────────────────────
+  # UNIVERSAL WORKSPACE
+  # Sem se připojíš přes Terminal v Coolify
+  # ─────────────────────────────────────────────────────────────
+  workspace:
+    image: node:24-bookworm
+    restart: unless-stopped
+
+    depends_on:
+      init:
+        condition: service_completed_successfully
+
+    user: "1000:1000"
+
+    working_dir: /home/node/workspace
+
+    environment:
+      - HOME=/home/node
+      - NPM_CONFIG_PREFIX=/home/node/.npm-global
+      - PATH=/home/node/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - TZ=${TZ:-Europe/Prague}
+
+    command:
+      - sh
+      - -lc
+      - |
+        mkdir -p /home/node/workspace
+        mkdir -p /home/node/.npm-global
+
+        echo ""
+        echo "======================================"
+        echo "       UNIVERSAL WORKSPACE"
+        echo "======================================"
+        echo "Node: $$(node --version)"
+        echo "npm:  $$(npm --version)"
+        echo "HOME: $$HOME"
+        echo "======================================"
+        echo ""
+
+        exec sleep infinity
+
+    volumes:
+      - workspace-home:/home/node
+
+
+  # ─────────────────────────────────────────────────────────────
+  # FILEBROWSER QUANTUM
+  # Webové rozhraní nad stejným workspace-home
+  # ─────────────────────────────────────────────────────────────
+  filebrowser:
+    image: gtstef/filebrowser:stable
+    restart: unless-stopped
+
+    depends_on:
+      init:
+        condition: service_completed_successfully
+
+    expose:
+      - "80"
+
+    environment:
+      - SERVICE_URL_FILEBROWSER_80
+
+      # Coolify zobrazí SERVICE_PASSWORD_ADMIN
+      # jako "Admin Password" přímo v Config.
+      - FILEBROWSER_ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}
+
+      - FILEBROWSER_CONFIG=/home/filebrowser/data/config.yaml
+      - FILEBROWSER_DATABASE=/home/filebrowser/data/database.db
+      - TZ=${TZ:-Europe/Prague}
+
+    volumes:
+      - workspace-home:/workspace
+      - quantum-data:/home/filebrowser/data
+
+
+volumes:
+
+  # Všechna data pracovního prostředí
+  workspace-home:
+
+  # Config + DB + cache FileBrowser Quantum
+  quantum-data:
