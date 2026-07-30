@@ -89,7 +89,6 @@ services:
         fi
 
         # Gateway spousti a hlida s6 (sluzba main-hermes) - NESPOUSTET podruhe.
-        # Tenhle proces drzi uz jen dashboard.
         echo "[hermes] gateway je pod s6 supervizi, startuji pouze dashboard"
         sleep 3
 
@@ -151,33 +150,73 @@ services:
         EOF
         exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 
+  # Jednorazovy init: vygeneruje config.yaml pro FileBrowser Quantum.
+  # Kontejner po dobehnuti skonci (v Coolify se zobrazi jako "exited" - je to spravne).
+  filebrowser-init:
+    image: alpine:3
+    restart: "no"
+    volumes:
+      - filebrowser-quantum-data:/data
+    command:
+      - sh
+      - -lc
+      - |
+        set -e
+        mkdir -p /data/tmp
+
+        if [ -f /data/config.yaml ]; then
+          echo "[fb-init] config.yaml uz existuje, nechavam beze zmeny"
+        else
+          cat > /data/config.yaml <<'EOF'
+        server:
+          port: 80
+          cacheDir: /home/filebrowser/data/tmp
+          sources:
+            - path: /srv/vault
+              name: Obsidian Vault
+              config:
+                defaultEnabled: true
+            - path: /srv/hermes-home
+              name: Hermes config
+              config:
+                defaultEnabled: true
+        auth:
+          adminUsername: admin
+        EOF
+          echo "[fb-init] config.yaml vygenerovan"
+        fi
+
+        chown -R 0:0 /data
+        echo "[fb-init] hotovo"
+
   filebrowser:
-    image: filebrowser/filebrowser:s6
+    image: gtstef/filebrowser:stable
     restart: unless-stopped
     user: "0:0"
+    depends_on:
+      filebrowser-init:
+        condition: service_completed_successfully
     expose:
       - "80"
     environment:
       - SERVICE_URL_FILEBROWSER_80
-      - PUID=0
-      - PGID=0
       - TZ=${TZ:-Europe/Prague}
-      - FB_USERNAME=admin
-      - FB_PASSWORD=${SERVICE_PASSWORD_ADMIN}
-      - FB_NOAUTH=false
-      - FB_ROOT=/srv
-      - FB_ADDRESS=0.0.0.0
-      - FB_PORT=80
-      - FB_DATABASE=/database/filebrowser.db
-      - FB_CONFIG=/config/settings.json
+      - FILEBROWSER_CONFIG=/home/filebrowser/data/config.yaml
+      - FILEBROWSER_ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}
     volumes:
       - hermes-workspace:/srv/vault
       - hermes-home:/srv/hermes-home
-      - hermes-agent-src:/srv/hermes-agent-src
-      - filebrowser-database:/database
-      - filebrowser-config:/config
-    depends_on:
-      - hermes-agent
+      - filebrowser-quantum-data:/home/filebrowser/data
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://127.0.0.1:80/health
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # ─────────────────────────────────────────────────────────────
   # VYPNUTO 2026-07-30 — hermes-webui padal v restart smycce:
@@ -232,5 +271,8 @@ volumes:
   hermes-home:
   hermes-agent-src:
   hermes-workspace:
+  filebrowser-quantum-data:
+  # Stara data puvodniho filebrowseru - ponechana pro pripad navratu.
+  # Quantum je nepouziva (jiny format DB), lze pozdeji smazat rucne.
   filebrowser-database:
   filebrowser-config:
