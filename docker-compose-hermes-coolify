@@ -85,25 +85,15 @@ services:
         DASH_HOST=0.0.0.0
         if ! PYTHONPATH=/opt/hermes "$$HERMES_PY" /tmp/hermes_dashboard_auth.py; then
           echo "[bootstrap] SELHALO nastaveni auth -> dashboard bezi jen na 127.0.0.1"
-          echo "[bootstrap] gateway pobezi dal, dashboard nebude dostupny pres proxy"
           DASH_HOST=127.0.0.1
         fi
 
-        "$$HERMES_BIN" gateway run &
-        gateway_pid="$$!"
-        "$$HERMES_BIN" dashboard --host "$$DASH_HOST" --port 9119 --no-open &
-        dashboard_pid="$$!"
+        # Gateway spousti a hlida s6 (sluzba main-hermes) - NESPOUSTET podruhe.
+        # Tenhle proces drzi uz jen dashboard.
+        echo "[hermes] gateway je pod s6 supervizi, startuji pouze dashboard"
+        sleep 3
 
-        trap 'kill "$${gateway_pid}" "$${dashboard_pid}" 2>/dev/null; wait' TERM INT
-
-        while kill -0 "$${gateway_pid}" 2>/dev/null && kill -0 "$${dashboard_pid}" 2>/dev/null; do
-          sleep 5
-        done
-
-        echo "[hermes] jedna ze sluzeb skoncila -> restart kontejneru"
-        kill "$${gateway_pid}" "$${dashboard_pid}" 2>/dev/null
-        wait
-        exit 1
+        exec "$$HERMES_BIN" dashboard --host "$$DASH_HOST" --port 9119 --no-open
     restart: unless-stopped
     expose:
       - "8642"
@@ -112,7 +102,6 @@ services:
       - HERMES_HOME=/home/hermes/.hermes
       - HERMES_UID=${PUID:-1000}
       - HERMES_GID=${PGID:-1000}
-      - HERMES_GATEWAY_NO_SUPERVISE=1
       - HERMES_DASHBOARD_USER=${HERMES_DASHBOARD_USER:-admin}
       - HERMES_DASHBOARD_PASSWORD=${HERMES_DASHBOARD_PASSWORD:-${SERVICE_PASSWORD_ADMIN}}
       - HERMES_FORCE_CONFIG_VERSION=${HERMES_FORCE_CONFIG_VERSION:-0}
@@ -157,7 +146,7 @@ services:
       - |
         cat > /etc/caddy/Caddyfile <<'EOF'
         :9119 {
-          reverse_proxy hermes-agent:9119
+        	reverse_proxy hermes-agent:9119
         }
         EOF
         exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
