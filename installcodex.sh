@@ -1,92 +1,193 @@
 #!/usr/bin/env bash
-# Agent2Telegram one-command installer.
-# Usage:  curl -fsSL <raw-url>/install.sh | bash      (or run it from a clone)
-# It checks Python, installs the package for the current user, and launches setup.
+
 set -euo pipefail
 
-# Recover the working directory if it was deleted (e.g. you just uninstalled while sitting in
-# the source clone) — otherwise git/curl fail with "cannot access parent directories: getcwd".
-cd "$PWD" 2>/dev/null || cd "$HOME" 2>/dev/null || cd /
+echo ""
+echo "=========================================="
+echo "   OpenAI Codex + Telegram instalace"
+echo "=========================================="
+echo ""
 
-REPO="https://github.com/petrludwig-collab/Agent2Telegram.git"
-NEED_PY_MAJOR=3
-NEED_PY_MINOR=10
+# ------------------------------------------------------------
+# 1. Základní nástroje
+# ------------------------------------------------------------
 
-say() { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
-err() { printf '\033[1;31mError:\033[0m %s\n' "$*" >&2; exit 1; }
+install_dependencies() {
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "→ Kontroluji systémové balíčky..."
 
-# Pick where to drop the launcher. Prefer a directory ALREADY on PATH and writable — then the
-# command works in the *current* terminal immediately (a piped installer can't change the parent
-# shell's PATH, so installing into a dir it already searches is the only way to "just work" now).
-# Fall back to ~/.local/bin (added to PATH via the rc files for future shells).
-pick_bindir() {
-  oldifs="$IFS"; IFS=:
-  for d in $PATH; do
-    case "$d" in
-      "$HOME"/*) if [ -d "$d" ] && [ -w "$d" ]; then IFS="$oldifs"; printf '%s' "$d"; return; fi ;;
-    esac
-  done
-  IFS="$oldifs"; printf '%s' "$HOME/.local/bin"
+        if [ "$(id -u)" -eq 0 ]; then
+            APT="apt-get"
+        elif command -v sudo >/dev/null 2>&1; then
+            APT="sudo apt-get"
+        else
+            echo "❌ Pro instalaci balíčků potřebuji root nebo sudo."
+            exit 1
+        fi
+
+        $APT update
+        $APT install -y \
+            curl \
+            ca-certificates \
+            git \
+            python3 \
+            tmux
+    fi
 }
 
-# 1) Python check
-PY="$(command -v python3 || true)"
-[ -n "$PY" ] || err "python3 not found. Install Python ${NEED_PY_MAJOR}.${NEED_PY_MINOR}+ first."
-"$PY" - <<'PYEOF' || err "Python ${NEED_PY_MAJOR}.${NEED_PY_MINOR}+ required."
+install_dependencies
+
+
+# ------------------------------------------------------------
+# 2. Kontrola Pythonu
+# Agent2Telegram vyžaduje Python 3.10+
+# ------------------------------------------------------------
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "❌ Python 3 není nainstalovaný."
+    exit 1
+fi
+
+if ! python3 - <<'PY'
 import sys
-sys.exit(0 if sys.version_info[:2] >= (3, 10) else 1)
-PYEOF
-say "Using $("$PY" --version)"
+sys.exit(0 if sys.version_info >= (3, 10) else 1)
+PY
+then
+    echo "❌ Agent2Telegram potřebuje Python 3.10 nebo novější."
+    python3 --version
+    exit 1
+fi
 
-# 2) Get the code (clone if we're not already inside it)
-if [ -f "pyproject.toml" ] && grep -q "agent2telegram" pyproject.toml 2>/dev/null; then
-  SRC="$(pwd)"
-  say "Installing from current directory"
+echo "✅ $(python3 --version)"
+
+
+# ------------------------------------------------------------
+# 3. Instalace OpenAI Codex
+# ------------------------------------------------------------
+
+echo ""
+echo "=========================================="
+echo "   1/3 Instalace OpenAI Codex"
+echo "=========================================="
+echo ""
+
+if command -v codex >/dev/null 2>&1; then
+
+    echo "✅ Codex už je nainstalovaný:"
+    codex --version
+
 else
-  command -v git >/dev/null || err "git not found (needed to fetch the project)."
-  SRC="${HOME}/.agent2telegram-src"
-  if [ -d "$SRC/.git" ]; then say "Updating $SRC"; git -C "$SRC" pull --ff-only
-  else say "Cloning into $SRC"; git clone --depth 1 "$REPO" "$SRC"; fi
+
+    echo "→ Instaluji nejnovější OpenAI Codex CLI..."
+
+    curl -fsSL https://chatgpt.com/codex/install.sh \
+        | CODEX_NON_INTERACTIVE=1 sh
+
 fi
 
-# 3) Make `agent2telegram` a real command. pip is OPTIONAL (the core is pure standard library):
-#    if pip is there we install the package too (so hooks can `python3 -m agent2telegram…`), but
-#    EITHER WAY we drop our own launcher into a directory on PATH so the command works right after
-#    install — no PYTHONPATH to remember, and (when a PATH dir is writable) no new shell needed.
-if "$PY" -m pip --version >/dev/null 2>&1 || "$PY" -m ensurepip --upgrade >/dev/null 2>&1; then
-  say "Installing the package"
-  "$PY" -m pip install --user --upgrade "$SRC" >/dev/null 2>&1 \
-    || "$PY" -m pip install --user --break-system-packages --upgrade "$SRC" >/dev/null 2>&1 || true
+
+# Codex standalone installer používá ~/.local/bin
+export PATH="$HOME/.local/bin:$PATH"
+
+if ! command -v codex >/dev/null 2>&1; then
+    echo "❌ Codex se nepodařilo nainstalovat."
+    exit 1
 fi
 
-BIND="$(pick_bindir)"
-mkdir -p "$BIND"
-printf '#!/bin/sh\nexec env PYTHONPATH="%s" "%s" -m agent2telegram "$@"\n' "$SRC" "$PY" > "$BIND/agent2telegram"
-chmod +x "$BIND/agent2telegram"
-RUN=("$BIND/agent2telegram"); HOW="agent2telegram"
-case ":$PATH:" in
-  *":$BIND:"*)
-    say "Installed launcher in $BIND (already on PATH) — 'agent2telegram' works now." ;;
-  *)
-    say "Installed launcher in $BIND — adding it to PATH for new shells."
-    for rc in "$HOME/.bashrc" "$HOME/.profile" "$HOME/.zshrc"; do
-      [ -e "$rc" ] || continue
-      grep -qs "$BIND" "$rc" || echo "export PATH=\"$BIND:\$PATH\"" >> "$rc"
-    done
-    # ~/.bashrc may not exist on a minimal server — create it so login shells pick it up.
-    grep -qs "$BIND" "$HOME/.bashrc" 2>/dev/null || echo "export PATH=\"$BIND:\$PATH\"" >> "$HOME/.bashrc"
-    export PATH="$BIND:$PATH"
-    say "For THIS terminal, run:  export PATH=\"$BIND:\$PATH\"   (new terminals get it automatically)" ;;
-esac
+echo ""
+echo "✅ Codex připraven:"
+codex --version
 
-# 4) Launch the setup wizard.
-# When invoked as `curl … | bash`, this script's stdin is the pipe, not your keyboard,
-# so the interactive wizard must read from the controlling terminal (/dev/tty).
-say "Run it later with:  $HOW run"
-if [ -e /dev/tty ]; then
-  say "Starting setup…"
-  exec "${RUN[@]}" setup </dev/tty
+
+# ------------------------------------------------------------
+# 4. Přihlášení Codexu
+# ------------------------------------------------------------
+
+echo ""
+echo "=========================================="
+echo "   2/3 Přihlášení do ChatGPT"
+echo "=========================================="
+echo ""
+
+if codex login status >/dev/null 2>&1; then
+
+    echo "✅ Codex je už přihlášený."
+
 else
-  say "Installed. Finish setup with:"
-  echo "    $HOW setup"
+
+    echo "Codex je potřeba propojit s účtem ChatGPT."
+    echo ""
+    echo "Otevře se Device Code přihlášení."
+    echo "Odkaz můžeš otevřít na svém počítači nebo telefonu."
+    echo ""
+
+    if [ -e /dev/tty ]; then
+        codex login --device-auth </dev/tty
+    else
+        echo "❌ Není dostupný interaktivní terminál."
+        echo "Spusť:"
+        echo ""
+        echo "    codex login --device-auth"
+        echo ""
+        exit 1
+    fi
+
 fi
+
+
+# Ověření přihlášení
+
+if ! codex login status >/dev/null 2>&1; then
+    echo "❌ Codex není přihlášený."
+    exit 1
+fi
+
+echo "✅ ChatGPT účet propojen."
+
+
+# ------------------------------------------------------------
+# 5. Agent2Telegram
+# ------------------------------------------------------------
+
+echo ""
+echo "=========================================="
+echo "   3/3 Propojení Codexu s Telegramem"
+echo "=========================================="
+echo ""
+
+echo "Teď vytvoř Telegram bota přes @BotFather."
+echo ""
+echo "1. Otevři Telegram"
+echo "2. Najdi @BotFather"
+echo "3. Napiš /newbot"
+echo "4. Vytvoř bota"
+echo "5. Zkopíruj jeho TOKEN"
+echo ""
+echo "Instalační průvodce si ho za chvíli vyžádá."
+echo ""
+
+read -r -p "Až budeš připravený, stiskni ENTER..." </dev/tty
+
+
+# Oficiální Agent2Telegram installer
+curl -fsSL \
+    https://raw.githubusercontent.com/petrludwig-collab/Agent2Telegram/main/install.sh \
+    | bash
+
+
+echo ""
+echo "=========================================="
+echo "   ✅ Hotovo"
+echo "=========================================="
+echo ""
+echo "Codex je nainstalovaný a propojený s Telegramem."
+echo ""
+echo "Codex:"
+codex --version
+echo ""
+echo "Telegram bridge:"
+echo "    agent2telegram run"
+echo ""
+echo "Diagnostika:"
+echo "    agent2telegram doctor"
+echo ""
