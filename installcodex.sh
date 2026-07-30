@@ -1,141 +1,83 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-export PATH="$HOME/.local/bin:$PATH"
-
-echo ""
-echo "=========================================="
-echo "   OpenAI Codex + Telegram"
-echo "=========================================="
-echo ""
-
 # ------------------------------------------------------------
-# Kontrola závislostí
-# ------------------------------------------------------------
-
-echo "→ Kontroluji prostředí..."
-
-MISSING=0
-
-for cmd in curl git python3; do
-    if ! command -v "$cmd" >/dev/null 2>&1; then
-        echo "❌ Chybí: $cmd"
-        MISSING=1
-    fi
-done
-
-if [ "$MISSING" -eq 1 ]; then
-    echo ""
-    echo "Na tomto serveru chybí potřebné systémové nástroje."
-    echo "Je potřeba je jednorázově nainstalovat administrátorem."
-    exit 1
-fi
-
-# Python 3.10+
-if ! python3 - <<'PY'
-import sys
-sys.exit(0 if sys.version_info >= (3, 10) else 1)
-PY
-then
-    echo "❌ Je potřeba Python 3.10 nebo novější."
-    python3 --version
-    exit 1
-fi
-
-echo "✅ curl"
-echo "✅ git"
-echo "✅ $(python3 --version)"
-
-
-# ------------------------------------------------------------
-# 1. Codex
+# Instalace tmux bez sudo
 # ------------------------------------------------------------
 
 echo ""
-echo "=========================================="
-echo "   1/3 OpenAI Codex"
-echo "=========================================="
-echo ""
+echo "→ Kontroluji tmux..."
 
-if command -v codex >/dev/null 2>&1; then
+if command -v tmux >/dev/null 2>&1; then
 
-    echo "✅ Codex už je nainstalovaný:"
-    codex --version
+    echo "✅ tmux už je nainstalovaný:"
+    tmux -V
 
 else
 
-    echo "→ Instaluji Codex..."
+    echo "→ tmux není nainstalovaný."
+    echo "→ Instaluji tmux do ~/.local/bin bez sudo..."
 
-    curl -fsSL https://chatgpt.com/codex/install.sh \
-        | CODEX_NON_INTERACTIVE=1 sh
-
+    mkdir -p "$HOME/.local/bin"
     export PATH="$HOME/.local/bin:$PATH"
-fi
 
-if ! command -v codex >/dev/null 2>&1; then
-    echo "❌ Codex se nepodařilo nainstalovat."
-    exit 1
-fi
+    case "$(uname -m)" in
+        x86_64|amd64)
+            TMUX_ARCH="x86_64"
+            ;;
+        aarch64|arm64)
+            TMUX_ARCH="arm64"
+            ;;
+        *)
+            echo "❌ Nepodporovaná architektura: $(uname -m)"
+            exit 1
+            ;;
+    esac
 
-echo "✅ Codex:"
-codex --version
+    # Zjisti nejnovější stabilní verzi tmux-builds
+    LATEST_URL="$(
+        curl -fsSL \
+            -o /dev/null \
+            -w '%{url_effective}' \
+            https://github.com/tmux/tmux-builds/releases/latest
+    )"
 
+    TMUX_TAG="${LATEST_URL##*/}"
+    TMUX_VERSION="${TMUX_TAG#v}"
 
-# ------------------------------------------------------------
-# 2. Login
-# ------------------------------------------------------------
-
-echo ""
-echo "=========================================="
-echo "   2/3 Přihlášení do ChatGPT"
-echo "=========================================="
-echo ""
-
-if codex login status >/dev/null 2>&1; then
-
-    echo "✅ Codex je už přihlášený."
-
-else
-
-    echo "Teď propojíš Codex se svým ChatGPT účtem."
-    echo ""
-
-    if [ -e /dev/tty ]; then
-        codex login --device-auth </dev/tty
-    else
-        echo "Spusť ručně:"
-        echo ""
-        echo "codex login --device-auth"
+    if [ -z "$TMUX_VERSION" ]; then
+        echo "❌ Nepodařilo se zjistit nejnovější verzi tmux."
         exit 1
     fi
+
+    TMUX_FILE="tmux-${TMUX_VERSION}-linux-${TMUX_ARCH}.tar.gz"
+    TMUX_URL="https://github.com/tmux/tmux-builds/releases/download/${TMUX_TAG}/${TMUX_FILE}"
+
+    TMP_DIR="$(mktemp -d)"
+
+    echo "→ Stahuji tmux ${TMUX_VERSION} (${TMUX_ARCH})..."
+
+    curl -fL "$TMUX_URL" \
+        -o "$TMP_DIR/$TMUX_FILE"
+
+    tar -xzf "$TMP_DIR/$TMUX_FILE" \
+        -C "$TMP_DIR"
+
+    if [ ! -f "$TMP_DIR/tmux" ]; then
+        echo "❌ V archivu nebyla nalezena binárka tmux."
+        rm -rf "$TMP_DIR"
+        exit 1
+    fi
+
+    cp "$TMP_DIR/tmux" "$HOME/.local/bin/tmux"
+    chmod +x "$HOME/.local/bin/tmux"
+
+    rm -rf "$TMP_DIR"
+
+    hash -r
+
+    if ! command -v tmux >/dev/null 2>&1; then
+        echo "❌ Instalace tmux se nezdařila."
+        exit 1
+    fi
+
+    echo "✅ tmux nainstalován:"
+    tmux -V
 fi
-
-
-# ------------------------------------------------------------
-# 3. Telegram
-# ------------------------------------------------------------
-
-echo ""
-echo "=========================================="
-echo "   3/3 Telegram"
-echo "=========================================="
-echo ""
-
-echo "→ Instaluji Agent2Telegram..."
-echo ""
-
-curl -fsSL \
-https://raw.githubusercontent.com/petrludwig-collab/Agent2Telegram/main/install.sh \
-| bash
-
-echo ""
-echo "=========================================="
-echo "   ✅ HOTOVO"
-echo "=========================================="
-echo ""
-echo "Codex je nainstalovaný."
-echo "Agent2Telegram je nainstalovaný."
-echo ""
-echo "Pošli zprávu svému Telegram botovi."
-echo ""
