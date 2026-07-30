@@ -1,0 +1,73 @@
+services:
+
+  workspace:
+    image: node:24-bookworm
+    restart: unless-stopped
+
+    working_dir: /home/node/workspace
+    user: "1000:1000"
+
+    environment:
+      - HOME=/home/node
+      - NPM_CONFIG_PREFIX=/home/node/.npm-global
+      - PATH=/home/node/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - TZ=${TZ:-Europe/Prague}
+
+    command:
+      - sh
+      - -lc
+      - |
+        mkdir -p /home/node/.npm-global
+        mkdir -p /home/node/workspace
+
+        echo ""
+        echo "======================================"
+        echo "  Universal Workspace"
+        echo "======================================"
+        echo "Node: $$(node --version)"
+        echo "npm:  $$(npm --version)"
+        echo "Home: $$HOME"
+        echo "======================================"
+        echo ""
+
+        exec sleep infinity
+
+    volumes:
+      - workspace-home:/home/node
+
+
+  filebrowser:
+    image: filebrowser/filebrowser:s6
+    restart: unless-stopped
+
+    expose:
+      - "80"
+
+    environment:
+      - SERVICE_URL_FILEBROWSER_80
+
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-Europe/Prague}
+
+      - FB_USERNAME=admin
+      - FB_PASSWORD=${SERVICE_PASSWORD_ADMIN}
+      - FB_NOAUTH=false
+
+      - FB_ROOT=/srv
+      - FB_ADDRESS=0.0.0.0
+      - FB_PORT=80
+
+      - FB_DATABASE=/database/filebrowser.db
+      - FB_CONFIG=/config/settings.json
+
+    volumes:
+      - workspace-home:/srv
+      - filebrowser-database:/database
+      - filebrowser-config:/config
+
+
+volumes:
+  workspace-home:
+  filebrowser-database:
+  filebrowser-config:
