@@ -1,9 +1,6 @@
 version: "3.8"
 
 services:
-  # ═══════════════════════════════════════════════════════════════════════
-  # OPENCLAW — hlavní AI agent server + gateway
-  # ═══════════════════════════════════════════════════════════════════════
   openclaw:
     image: coollabsio/openclaw:latest
     restart: always
@@ -19,12 +16,6 @@ services:
       - OPENCLAW_WORKSPACE_DIR=/data/workspace
       - OPENROUTER_API_KEY=$OPENROUTER_API_KEY
       - TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
-      - OPENAI_API_KEY=$OPENAI_API_KEY
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://31.97.126.27:11434/v1}
-      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY:-}
-      - KIE_API_KEY=${KIE_API_KEY:-}
-      - SUNO_API_KEY=${SUNO_API_KEY:-}
-      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - BROWSER_TYPE=remote
       - BROWSER_CDP_URL=http://browser:9222
       - BROWSER_EVALUATE_ENABLED=true
@@ -35,7 +26,7 @@ services:
       - coolify.managed=true
       - traefik.http.services.openclaw.loadbalancer.server.port=8080
       - traefik.http.services.openclaw-gw.loadbalancer.server.port=18789
-      - "traefik.http.routers.openclaw-gw.rule=Host(`openclaw-u8fne8qkauweu3s28c4rojcu.31.97.126.27.sslip.io`) && HeaderRegexp(`Upgrade`, `(?i)websocket`)"
+      - "traefik.http.routers.openclaw-gw.rule=Host(`openclaw-pelsvit80f2u4vcjof6tg0vo.31.97.126.27.sslip.io`) && HeaderRegexp(`Upgrade`, `(?i)websocket`)"
       - traefik.http.routers.openclaw-gw.entrypoints=https
       - traefik.http.routers.openclaw-gw.tls=true
       - traefik.http.routers.openclaw-gw.service=openclaw-gw
@@ -44,9 +35,6 @@ services:
       browser:
         condition: service_healthy
 
-  # ═══════════════════════════════════════════════════════════════════════
-  # BROWSER — headless Chrome pro webové agenty OpenClaw
-  # ═══════════════════════════════════════════════════════════════════════
   browser:
     image: coollabsio/openclaw-browser:latest
     restart: always
