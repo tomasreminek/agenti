@@ -1,0 +1,32 @@
+# Prisma Packs — License Agreement
+
+Thank you for your purchase. This license governs your use of the images contained
+in this pack (the "Images"). By downloading or using the Images you agree to these terms.
+
+## You MAY
+- Use the Images for **personal projects**.
+- Use the Images for **commercial projects**, including: social media content, marketing
+  and ads, websites and apps, videos and thumbnails, printed materials, merchandise you
+  sell (t-shirts, mugs, posters, stickers), client work, and similar end-use products.
+- Modify, crop, edit, recolor or combine the Images with other work.
+
+## You MAY NOT
+- **Resell or redistribute the Images as-is**, whether as a stand-alone pack, a bundle,
+  individual files, an image library, NFT, or any product whose primary value is the
+  Images themselves.
+- Sub-license, share, or give away the Images or your download link.
+- Claim authorship or exclusive ownership of the Images.
+- Use the Images for unlawful, hateful, defamatory or infringing purposes.
+
+## Notes
+- The Images were produced with the Krea 2 text-to-image model. No copyright is claimed
+  by the model provider over generated content; this license covers the curated pack and
+  the right to use it as described above.
+- The Images are provided "as is", without warranty of any kind. Maximum liability is
+  limited to the amount you paid for the pack.
+- A simple rule of thumb: **use them in your work freely — just don't sell the images
+  themselves.**
+
+For extended terms (e.g. resale rights) contact the store.
+
+© Prisma Packs. License version 1.0.
