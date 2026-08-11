@@ -1,0 +1,99 @@
+# ══════════════════════════════════════════════════════════════════════════
+# OpenClaw — KONFIGURACE (STABILNÍ STACK BEZ NGINX AUTH CONFLICT)
+# ══════════════════════════════════════════════════════════════════════════
+#
+# NÁVOD K NASAZENÍ A ZAPOJENÍ
+# ──────────────────────────────────────────────────────────────────────────
+#
+# 1) Vlož tento Compose soubor do Coolify a dej Deploy.
+#
+# 2) V Terminálu kontejneru "openclaw" spusť interaktivní onboard (nepovinné):
+#      openclaw onboard
+#    (Nebo stisknutím CTRL + C přeskoč).
+#  
+# 3) Otevři webové rozhraní (HTTPS FQDN z Coolify).
+#    Do pole pro Gateway Token vlož hodnotu proměnné $SERVICE_PASSWORD_64_GATEWAYTOKEN
+#    (najdeš ji v Coolify → Environment Variables) a klikni na Connect.
+#
+# 4) V Terminálu kontejneru "openclaw" spusť tento JEDINÝ příkaz pro správné
+#    nastavení síťování, proxy a autorizace zařízení:
+#
+#      openclaw config set gateway.controlUi.allowedOrigins '["*"]' && openclaw config set gateway.bind lan && openclaw config set gateway.trustedProxies '["0.0.0.0/0"]' && openclaw devices approve --latest
+#
+# 5) Pokud tě web vyzve ke schválení konkrétního zařízení, spusť v Terminálu:
+#      openclaw devices approve <DEVICE_ID>
+#
+# OpenClaw je teď vázáno na zařízení, kde to spouštíš a tím chráněno.
+# ══════════════════════════════════════════════════════════════════════════
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════
+  # OPENCLAW — hlavní AI agent server + gateway
+  # ═══════════════════════════════════════════════════════════════════════
+  openclaw:
+    image: coollabsio/openclaw:latest
+    restart: always
+    environment:
+      - SERVICE_FQDN_OPENCLAW_8080
+      # Nginx AUTH vypnut — zabezpečení řeší Gateway Token + Device Pairing
+#     - AUTH_USERNAME=$SERVICE_USER_OPENCLAW
+#     - AUTH_PASSWORD=$SERVICE_PASSWORD_OPENCLAW
+      - OPENCLAW_GATEWAY_TOKEN=$SERVICE_PASSWORD_64_GATEWAYTOKEN
+      - OPENCLAW_GATEWAY_BIND=lan
+      - OPENCLAW_GATEWAY_PORT=18789
+      - OPENCLAW_HOME=/data/.openclaw
+      - OPENCLAW_STATE_DIR=/data/.openclaw
+      - OPENCLAW_WORKSPACE_DIR=/data/workspace
+      - OPENROUTER_API_KEY=$OPENROUTER_API_KEY
+      - TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
+      - OPENAI_API_KEY=$OPENAI_API_KEY
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - BROWSER_TYPE=remote
+      - BROWSER_CDP_URL=http://browser:9222
+      - BROWSER_EVALUATE_ENABLED=true
+      - PORT=8080
+    volumes:
+      - openclaw-data:/data
+    labels:
+      - coolify.managed=true
+      # HTTP provoz na Nginx UI (port 8080)
+      - traefik.http.services.openclaw.loadbalancer.server.port=8080
+      - traefik.http.routers.openclaw.rule=Host(`$SERVICE_FQDN_OPENCLAW_8080`)
+      - traefik.http.routers.openclaw.entrypoints=https
+      - traefik.http.routers.openclaw.tls=true
+      - traefik.http.routers.openclaw.priority=10
+      
+      # WebSocket provoz na Gateway (port 18789)
+      - traefik.http.services.openclaw-gw.loadbalancer.server.port=18789
+      - "traefik.http.routers.openclaw-gw.rule=Host(`$SERVICE_FQDN_OPENCLAW_8080`) && HeaderRegexp(`Upgrade`, `(?i)websocket`)"
+      - traefik.http.routers.openclaw-gw.entrypoints=https
+      - traefik.http.routers.openclaw-gw.tls=true
+      - traefik.http.routers.openclaw-gw.service=openclaw-gw
+      - traefik.http.routers.openclaw-gw.priority=100
+    depends_on:
+      browser:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # BROWSER — headless Chrome pro webové agenty
+  # ═══════════════════════════════════════════════════════════════════════
+  browser:
+    image: coollabsio/openclaw-browser:latest
+    restart: always
+    environment:
+      - CHROME_CLI=--remote-debugging-port=9222 --no-sandbox
+    volumes:
+      - browser-data:/config
+    shm_size: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/9222' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  openclaw-data:
+    name: openclaw-data
+  browser-data:
+    name: browser-data
