@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 # ============================================================
-# OpenAI Codex + Telegram
+# OpenAI Codex + vzdálené ovládání
 #
 # Instalátor pro:
 #   https://github.com/tomasreminek/agenti
@@ -11,9 +11,18 @@ set -Eeuo pipefail
 # Obsahuje:
 #   - OpenAI Codex CLI
 #   - přihlášení přes ChatGPT
-#   - tmux bez sudo/root
+#   - volbu způsobu ovládání:
+#       1) Telegram
+#       2) nativní ChatGPT/Codex Remote
+#       3) obojí
+#   - tmux bez sudo/root pro Telegram bridge
 #   - vlastní kopii Agent2Telegram
 #   - český instalační průvodce
+#
+# Poznámka k nativnímu ovládání:
+#   Mobilní ChatGPT se nepřipojuje přímo k samotnému Codex CLI na VPS.
+#   Oficiální cesta je Codex/ChatGPT desktop -> Remote SSH -> VPS
+#   a následně karta Remote v mobilní aplikaci ChatGPT.
 #
 # Lze bezpečně spouštět opakovaně.
 # ============================================================
@@ -34,6 +43,11 @@ A2T_SRC="$HOME/.agent2telegram-src"
 A2T_CONFIG="$HOME/.config/agent2telegram/config.json"
 
 TMP_ROOT=""
+
+# Způsob ovládání se vybere v průvodci.
+ZPUSOB_OVLADANI=""
+POUZIT_TELEGRAM=0
+POUZIT_NATIVE=0
 
 export PATH="$BIN_DIR:$PATH"
 
@@ -123,12 +137,94 @@ nastav_path() {
 
 
 # ============================================================
-# 0/5 KONTROLA PROSTŘEDÍ
+# VOLBA ZPŮSOBU OVLÁDÁNÍ
+# ============================================================
+
+vyber_ovladani() {
+
+    sekce "Způsob ovládání Codexu"
+
+    echo "Jak chceš Codex na tomto VPS ovládat?"
+    echo ""
+    echo "  1) Telegram"
+    echo "     Codex poběží v tmux a bude ovladatelný přes Telegram bota."
+    echo ""
+    echo "  2) Nativní aplikace ChatGPT / Codex Remote"
+    echo "     VPS budeš používat přes Remote SSH z desktopové aplikace"
+    echo "     a aktivní práci pak můžeš řídit z karty Remote v mobilním ChatGPT."
+    echo ""
+    echo "  3) Obojí"
+    echo "     Telegram bridge i nativní ChatGPT/Codex Remote."
+    echo ""
+
+    if [ ! -e /dev/tty ]; then
+        chyba "Pro výběr způsobu ovládání je potřeba interaktivní terminál."
+    fi
+
+    local volba
+
+    while true; do
+
+        printf "Vyber 1, 2 nebo 3 [3]: " >/dev/tty
+        IFS= read -r volba </dev/tty || true
+        volba="${volba:-3}"
+
+        case "$volba" in
+
+            1)
+                ZPUSOB_OVLADANI="telegram"
+                POUZIT_TELEGRAM=1
+                POUZIT_NATIVE=0
+                break
+                ;;
+
+            2)
+                ZPUSOB_OVLADANI="native"
+                POUZIT_TELEGRAM=0
+                POUZIT_NATIVE=1
+                break
+                ;;
+
+            3)
+                ZPUSOB_OVLADANI="oboji"
+                POUZIT_TELEGRAM=1
+                POUZIT_NATIVE=1
+                break
+                ;;
+
+            *)
+                echo ""
+                echo "❌ Zadej prosím 1, 2 nebo 3."
+                echo ""
+                ;;
+        esac
+
+    done
+
+    echo ""
+    case "$ZPUSOB_OVLADANI" in
+        telegram)
+            echo "✅ Vybráno: Telegram"
+            ;;
+        native)
+            echo "✅ Vybráno: nativní ChatGPT / Codex Remote"
+            ;;
+        oboji)
+            echo "✅ Vybráno: Telegram + nativní ChatGPT / Codex Remote"
+            ;;
+    esac
+    echo ""
+
+}
+
+
+# ============================================================
+# KONTROLA PROSTŘEDÍ
 # ============================================================
 
 zkontroluj_prostredi() {
 
-    sekce "0/5  Kontrola prostředí"
+    sekce "Kontrola prostředí"
 
 
     local chyba_nalezena=0
@@ -185,12 +281,12 @@ $(python3 --version 2>&1)"
 
 
 # ============================================================
-# 1/5 OPENAI CODEX
+# OPENAI CODEX
 # ============================================================
 
 nainstaluj_codex() {
 
-    sekce "1/5  OpenAI Codex"
+    sekce "OpenAI Codex"
 
 
     if existuje codex; then
@@ -231,12 +327,12 @@ nainstaluj_codex() {
 
 
 # ============================================================
-# 2/5 PŘIHLÁŠENÍ CODEXU
+# PŘIHLÁŠENÍ CODEXU
 # ============================================================
 
 prihlas_codex() {
 
-    sekce "2/5  Přihlášení do ChatGPT"
+    sekce "Přihlášení do ChatGPT"
 
 
     if codex login status >/dev/null 2>&1; then
@@ -286,12 +382,58 @@ prihlas_codex() {
 
 
 # ============================================================
-# 3/5 TMUX BEZ SUDO
+# NATIVNÍ CHATGPT / CODEX REMOTE
+# ============================================================
+
+priprav_native_remote() {
+
+    sekce "Nativní ChatGPT / Codex Remote"
+
+    echo "Codex CLI na VPS je připravený a přihlášený."
+    echo ""
+    echo "Pro nativní ovládání z mobilní aplikace ChatGPT použij"
+    echo "oficiální Remote SSH cestu:"
+    echo ""
+    echo "  1. Na počítači otevři desktopovou aplikaci ChatGPT / Codex."
+    echo ""
+    echo "  2. Přidej tento VPS jako SSH hostitele."
+    echo "     Desktopová aplikace umí použít hostitele z ~/.ssh/config."
+    echo ""
+    echo "  3. V desktopové aplikaci otevři projekt na VPS přes Remote SSH"
+    echo "     a spusť v něm Codex relaci."
+    echo ""
+    echo "  4. Na telefonu aktualizuj aplikaci ChatGPT a přihlas se"
+    echo "     ke stejnému ChatGPT účtu / workspace."
+    echo ""
+    echo "  5. V mobilní aplikaci otevři kartu Remote."
+    echo "     Tam můžeš pokračovat v podporovaných Codex relacích,"
+    echo "     kontrolovat výstupy a schvalovat další kroky."
+    echo ""
+    echo "ℹ️  Samotný tento linuxový instalátor nedokáže spárovat"
+    echo "    mobilní aplikaci přímo s Codex CLI na VPS."
+    echo ""
+
+    if existuje sshd || [ -x /usr/sbin/sshd ] || [ -x /sbin/sshd ]; then
+        echo "✅ Na systému byl nalezen SSH server."
+    else
+        echo "⚠️  Příkaz sshd jsem v tomto prostředí nenašel."
+        echo "    Remote SSH vyžaduje, aby byl VPS dostupný přes SSH."
+        echo "    Pokud běžíš uvnitř Coolify/Docker kontejneru, SSH bývá"
+        echo "    dostupné na hostitelském VPS, ne uvnitř kontejneru."
+    fi
+
+    echo ""
+
+}
+
+
+# ============================================================
+# TMUX BEZ SUDO
 # ============================================================
 
 nainstaluj_tmux() {
 
-    sekce "3/5  tmux"
+    sekce "tmux pro Telegram"
 
 
     if existuje tmux; then
@@ -831,12 +973,12 @@ PY
 
 
 # ============================================================
-# 4/5 INSTALACE VLASTNÍHO AGENT2TELEGRAM
+# INSTALACE VLASTNÍHO AGENT2TELEGRAM
 # ============================================================
 
 nainstaluj_agent2telegram() {
 
-    sekce "4/5  Telegram bridge"
+    sekce "Telegram bridge"
 
 
     echo "→ Instaluji Agent2Telegram z tvého repozitáře:"
@@ -974,12 +1116,12 @@ EOF
 
 
 # ============================================================
-# 5/5 NASTAVENÍ TELEGRAMU
+# NASTAVENÍ TELEGRAMU
 # ============================================================
 
 nastav_telegram() {
 
-    sekce "5/5  Propojení Codexu s Telegramem"
+    sekce "Propojení Codexu s Telegramem"
 
 
     echo "Teď proběhne český průvodce propojením."
@@ -1037,51 +1179,71 @@ hotovo() {
 
     sekce "🎉 Instalace dokončena"
 
-
     echo "OpenAI Codex:"
     echo ""
-
     codex --version || true
-
-
-    echo ""
-    echo "tmux:"
     echo ""
 
-    tmux -V || true
-
-
-    echo ""
-    echo "Telegram bridge:"
+    echo "Vybraný způsob ovládání:"
     echo ""
 
-    echo "  agent2telegram"
-
-
-    echo ""
-    echo "Užitečné příkazy:"
-    echo ""
-
-    echo "  agent2telegram run"
-    echo "      spustí propojení s Telegramem"
+    case "$ZPUSOB_OVLADANI" in
+        telegram)
+            echo "  Telegram"
+            ;;
+        native)
+            echo "  Nativní ChatGPT / Codex Remote"
+            ;;
+        oboji)
+            echo "  Telegram + nativní ChatGPT / Codex Remote"
+            ;;
+    esac
 
     echo ""
 
-    echo "  agent2telegram setup"
-    echo "      znovu nastaví Telegram"
+    if [ "$POUZIT_TELEGRAM" -eq 1 ]; then
 
+        echo "tmux:"
+        echo ""
+        tmux -V || true
+        echo ""
+
+        echo "Telegram bridge:"
+        echo ""
+        echo "  agent2telegram"
+        echo ""
+
+        echo "Užitečné příkazy pro Telegram:"
+        echo ""
+        echo "  agent2telegram run"
+        echo "      spustí propojení s Telegramem"
+        echo ""
+        echo "  agent2telegram setup"
+        echo "      znovu nastaví Telegram"
+        echo ""
+        echo "  agent2telegram doctor"
+        echo "      provede diagnostiku"
+        echo ""
+
+    fi
+
+    if [ "$POUZIT_NATIVE" -eq 1 ]; then
+
+        echo "Nativní ChatGPT / Codex Remote:"
+        echo ""
+        echo "  Desktop ChatGPT/Codex -> Remote SSH -> tento VPS"
+        echo "  Mobilní ChatGPT -> karta Remote"
+        echo ""
+        echo "  Telefon i desktop musí používat stejný ChatGPT účet/workspace."
+        echo ""
+
+    fi
+
+    echo "Codex v terminálu:"
     echo ""
-
-    echo "  agent2telegram doctor"
-    echo "      provede diagnostiku"
-
-    echo ""
-
     echo "  codex"
     echo "      spustí Codex přímo v terminálu"
-
     echo ""
-
 
     if [ -f /.dockerenv ]; then
 
@@ -1096,9 +1258,19 @@ hotovo() {
         echo ""
         echo "  $HOME/.local"
         echo "  $HOME/.codex"
-        echo "  $HOME/.config/agent2telegram"
-        echo "  $HOME/.agent2telegram-src"
+
+        if [ "$POUZIT_TELEGRAM" -eq 1 ]; then
+            echo "  $HOME/.config/agent2telegram"
+            echo "  $HOME/.agent2telegram-src"
+        fi
+
         echo ""
+
+        if [ "$POUZIT_NATIVE" -eq 1 ]; then
+            echo "ℹ️  Pro Remote SSH se typicky připojuješ na hostitelský VPS,"
+            echo "    ne přímo do dočasného aplikačního kontejneru."
+            echo ""
+        fi
 
     fi
 
@@ -1111,20 +1283,22 @@ hotovo() {
 
 main() {
 
-    sekce "OpenAI Codex + Telegram"
-
+    sekce "OpenAI Codex + vzdálené ovládání"
 
     echo "Tento instalátor:"
     echo ""
     echo "  ✓ nepotřebuje sudo"
     echo "  ✓ nepotřebuje root"
     echo "  ✓ nainstaluje Codex"
-    echo "  ✓ nainstaluje tmux"
+    echo "  ✓ přihlásí Codex přes ChatGPT"
+    echo "  ✓ nabídne Telegram, nativní ChatGPT/Codex Remote, nebo obojí"
+    echo "  ✓ Telegram části nainstaluje jen pokud je vybereš"
     echo "  ✓ použije Agent2Telegram z tvého GitHubu"
-    echo "  ✓ počeští instalačního průvodce"
+    echo "  ✓ počeští instalačního průvodce Telegramu"
     echo "  ✓ lze ho bezpečně spustit znovu"
     echo ""
 
+    vyber_ovladani
 
     zkontroluj_prostredi
 
@@ -1132,11 +1306,15 @@ main() {
 
     prihlas_codex
 
-    nainstaluj_tmux
+    if [ "$POUZIT_NATIVE" -eq 1 ]; then
+        priprav_native_remote
+    fi
 
-    nainstaluj_agent2telegram
-
-    nastav_telegram
+    if [ "$POUZIT_TELEGRAM" -eq 1 ]; then
+        nainstaluj_tmux
+        nainstaluj_agent2telegram
+        nastav_telegram
+    fi
 
     hotovo
 
